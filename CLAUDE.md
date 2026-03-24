@@ -1,90 +1,76 @@
-# CLAUDE.md — ZeroClaw
+# ZEROCLAW — RUST AUTONOMOUS AGENT RUNTIME
 
-## Commands
+**Branch:** master
+
+## OVERVIEW
+
+ZeroClaw is a Rust-first autonomous agent runtime optimized for performance, efficiency, stability, extensibility, sustainability, and security. Core architecture is trait-driven and modular — extend by implementing traits and registering in factory modules.
+
+Key extension points: `Provider` (`src/providers/traits.rs`), `Channel` (`src/channels/traits.rs`), `Tool` (`src/tools/traits.rs`), `Memory` (`src/memory/traits.rs`), `Observer` (`src/observability/traits.rs`), `RuntimeAdapter` (`src/runtime/traits.rs`), `Peripheral` (`src/peripherals/traits.rs`).
+
+## STRUCTURE
+
+```
+zeroclaw/
+├── src/main.rs            # CLI entrypoint and command routing
+├── src/lib.rs             # Module exports and shared command enums
+├── src/config/            # Schema + config loading/merging
+├── src/agent/             # Orchestration loop
+├── src/gateway/           # Webhook/gateway server
+├── src/security/          # Policy, pairing, secret store
+├── src/memory/            # Markdown/SQLite backends + embeddings/vector merge
+├── src/providers/         # Model providers and resilient wrapper
+├── src/channels/          # Telegram/Discord/Slack/etc channels
+├── src/tools/             # Tool execution surface (shell, file, memory, browser)
+├── src/peripherals/       # Hardware peripherals (STM32, RPi GPIO)
+├── src/runtime/           # Runtime adapters (currently native)
+├── docs/                  # Topic-based documentation
+└── .github/               # CI, templates, automation workflows
+```
+
+## WHERE TO LOOK
+
+| Task | Path | Notes |
+|------|------|-------|
+| Add provider | `src/providers/traits.rs` | Implement `Provider` trait |
+| Add channel | `src/channels/traits.rs` | Implement `Channel` trait |
+| Add tool | `src/tools/traits.rs` | Implement `Tool` trait |
+| Agent loop | `src/agent/` | Core orchestration |
+| Security policy | `src/security/` | High risk — careful review |
+| Gateway/webhooks | `src/gateway/` | High risk |
+| Hardware | `src/peripherals/` | STM32, RPi GPIO |
+| Config | `src/config/` | Schema + loading/merging |
+| Change playbooks | `docs/contributing/change-playbooks.md` | Provider/channel/tool recipes |
+| PR discipline | `docs/contributing/pr-discipline.md` | Privacy, attribution |
+
+## COMMANDS
 
 ```bash
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
 cargo test
+./dev/ci.sh all                    # Full pre-PR validation
 ```
 
-Full pre-PR validation (recommended):
+Docs-only changes: run markdown lint and link-integrity checks. Bootstrap scripts: `bash -n install.sh`.
 
-```bash
-./dev/ci.sh all
-```
+## CONVENTIONS
 
-Docs-only changes: run markdown lint and link-integrity checks. If touching bootstrap scripts: `bash -n install.sh`.
+**Rust**: Edition 2021. `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`. Feature-gated deps via Cargo features.
 
-## Project Snapshot
+**Workflow**: Read before write. One concern per PR. Minimal patch — no speculative abstractions. Validate by risk tier. Conventional commit titles. Small PRs preferred (`size: XS/S/M`). Work from non-`master` branch; open PR to `master`.
 
-ZeroClaw is a Rust-first autonomous agent runtime optimized for performance, efficiency, stability, extensibility, sustainability, and security.
+**Risk tiers**: Low (docs/chore/tests-only), Medium (most `src/**` behavior changes), High (`security/`, `runtime/`, `gateway/`, `tools/`, `.github/workflows/`). When uncertain, classify higher.
 
-Core architecture is trait-driven and modular. Extend by implementing traits and registering in factory modules.
+## ANTI-PATTERNS
 
-Key extension points:
-
-- `src/providers/traits.rs` (`Provider`)
-- `src/channels/traits.rs` (`Channel`)
-- `src/tools/traits.rs` (`Tool`)
-- `src/memory/traits.rs` (`Memory`)
-- `src/observability/traits.rs` (`Observer`)
-- `src/runtime/traits.rs` (`RuntimeAdapter`)
-- `src/peripherals/traits.rs` (`Peripheral`) — hardware boards (STM32, RPi GPIO)
-
-## Repository Map
-
-- `src/main.rs` — CLI entrypoint and command routing
-- `src/lib.rs` — module exports and shared command enums
-- `src/config/` — schema + config loading/merging
-- `src/agent/` — orchestration loop
-- `src/gateway/` — webhook/gateway server
-- `src/security/` — policy, pairing, secret store
-- `src/memory/` — markdown/sqlite memory backends + embeddings/vector merge
-- `src/providers/` — model providers and resilient wrapper
-- `src/channels/` — Telegram/Discord/Slack/etc channels
-- `src/tools/` — tool execution surface (shell, file, memory, browser)
-- `src/peripherals/` — hardware peripherals (STM32, RPi GPIO)
-- `src/runtime/` — runtime adapters (currently native)
-- `docs/` — topic-based documentation (setup-guides, reference, ops, security, hardware, contributing, maintainers)
-- `.github/` — CI, templates, automation workflows
-
-## Risk Tiers
-
-- **Low risk**: docs/chore/tests-only changes
-- **Medium risk**: most `src/**` behavior changes without boundary/security impact
-- **High risk**: `src/security/**`, `src/runtime/**`, `src/gateway/**`, `src/tools/**`, `.github/workflows/**`, access-control boundaries
-
-When uncertain, classify as higher risk.
-
-## Workflow
-
-1. **Read before write** — inspect existing module, factory wiring, and adjacent tests before editing.
-2. **One concern per PR** — avoid mixed feature+refactor+infra patches.
-3. **Implement minimal patch** — no speculative abstractions, no config keys without a concrete use case.
-4. **Validate by risk tier** — docs-only: lightweight checks. Code changes: full relevant checks.
-5. **Document impact** — update PR notes for behavior, risk, side effects, and rollback.
-6. **Queue hygiene** — stacked PR: declare `Depends on #...`. Replacing old PR: declare `Supersedes #...`.
-
-Branch/commit/PR rules:
-- Work from a non-`master` branch. Open a PR to `master`; do not push directly.
-- Use conventional commit titles. Prefer small PRs (`size: XS/S/M`).
-- Follow `.github/pull_request_template.md` fully.
-- Never commit secrets, personal data, or real identity information (see `@docs/contributing/pr-discipline.md`).
-
-## Anti-Patterns
-
-- Do not add heavy dependencies for minor convenience.
-- Do not silently weaken security policy or access constraints.
-- Do not add speculative config/feature flags "just in case".
-- Do not mix massive formatting-only changes with functional changes.
-- Do not modify unrelated modules "while here".
-- Do not bypass failing checks without explicit explanation.
-- Do not hide behavior-changing side effects in refactor commits.
-- Do not include personal identity or sensitive information in test data, examples, docs, or commits.
-
-## Linked References
-
-- `@docs/contributing/change-playbooks.md` — adding providers, channels, tools, peripherals; security/gateway changes; architecture boundaries
-- `@docs/contributing/pr-discipline.md` — privacy rules, superseded-PR attribution/templates, handoff template
-- `@docs/contributing/docs-contract.md` — docs system contract, i18n rules, locale parity
+| Forbidden | Why |
+|-----------|-----|
+| Heavy deps for minor convenience | Binary bloat, audit surface |
+| Silently weakening security policy | Safety-critical code |
+| Speculative config/feature flags | No use case = no code |
+| Massive formatting-only mixed with functional changes | Review noise |
+| Modifying unrelated modules "while here" | Scope creep |
+| Bypassing failing checks without explanation | CI integrity |
+| Hiding behavior changes in refactor commits | Reviewability |
+| Personal identity/sensitive info in test data | Privacy |
